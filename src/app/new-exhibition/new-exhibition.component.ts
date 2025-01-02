@@ -68,6 +68,19 @@ export class NewExhibitionComponent {
   // Retrieve all saved data from local storage
     allSavedData: any[] = JSON.parse(localStorage.getItem('exhibitionData') || '[]');
 
+    onAddSection() {
+      const titleValue = this.exhibitionForm.controls['title'].value;
+      if (!titleValue) {
+        alert('Title is required.');
+      } else {
+        const modal = document.querySelector('app-add-section-modal') as HTMLElement;
+        if (modal) {
+          (modal as any).openModal();
+        }
+      }
+    }
+
+
 
     onSubmit() {
       if (this.exhibitionForm.valid) {

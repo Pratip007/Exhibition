@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, Input, TemplateRef } from '@angular/core';
+import { Component, inject, Input, OnChanges, SimpleChanges, TemplateRef } from '@angular/core';
 import { FormGroup, FormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
@@ -102,13 +102,27 @@ import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
   `,
   styles: ` `,
 })
-export class AddSectionModalComponent {
-
-
-
+export class AddSectionModalComponent implements OnChanges {
   @Input() titleData!: any;
 
-    isOpen = false;
+  isOpen = false;
+  exhibitionForm: FormGroup;
+  selectedFile: File | null = null;
+
+  constructor(private fb: FormBuilder, private router: Router) {
+    this.exhibitionForm = this.fb.group({
+      title: ['', Validators.required],
+      description: [''],
+      coverImage: [null],
+    });
+  }
+
+  // Handle changes to the @Input property
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['titleData'] && changes['titleData'].currentValue) {
+      console.log('titleData received:', this.titleData);
+    }
+  }
 
   openModal() {
     this.isOpen = true;
@@ -118,24 +132,10 @@ export class AddSectionModalComponent {
     this.isOpen = false;
   }
 
-  exhibitionForm: FormGroup;
-  selectedFile: File | null = null;
-//	private modalService = inject(NgbModal);
-
-  constructor(private fb: FormBuilder, private router : Router) {
-    this.exhibitionForm = this.fb.group({
-      title: ['', Validators.required],
-      description: [''],
-      coverImage: [null],
-
-    });
-
-  }
-
   // Trigger the file input
   triggerFileInput() {
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-    fileInput?.click(); // Safe usage with type assertion
+    fileInput?.click();
   }
 
   // Handle file selection
@@ -168,39 +168,39 @@ export class AddSectionModalComponent {
     }
   }
 
-  updateData(data: any[], id: any, updatedFields: any) {
-    return data.map((titleData) => {
-      if (titleData.id === id) {
-        setTimeout(() => {
-          console.log(titleData);
-        }, 2000);
-        
-        return { ...this.titleData, ...updatedFields }; // Merge updated fields
-      }
-      return titleData;
-    });
+  // Generate random ID
+  generateRandomId(): string {
+    return Math.random().toString(36).substring(2, 15);
   }
-
 
   onSubmit() {
-    this.router.navigate(['/preview-ex']);
     if (this.exhibitionForm.valid) {
-      // Retrieve data from local storage by ID
+      const randomId = this.generateRandomId();
+      const formData = this.exhibitionForm.value;
 
-      const storedData = JSON.parse(localStorage.getItem('exhibitionData') || '{}');
+      // Set the cover image path (assuming a static folder 'uploads' for storing images)
+      const coverImagePath = this.selectedFile ? `assets/image/${this.selectedFile.name}` : null;
 
+      const dataToStore = {
+        id: this.titleData?.id || this.generateRandomId(), // Fallback if titleData.id is missing
+        sec_id: randomId,
+        ...formData,
+        coverImagePath,
+      };
 
-      if (storedData) {
-        const finalData =this.updateData(storedData, this.titleData.id, this.exhibitionForm.value);
-        console.log('Final Data:', finalData);
+      // Retrieve existing data from local storage
+      const existingData = JSON.parse(localStorage.getItem('exhibitionData') || '[]');
 
-      } else {
-        console.log('No data found for the given ID');
-      }
+      // Append new data to existing data
+      existingData.push(dataToStore);
 
-      //console.log('Form Data:', this.exhibitionForm.value);
-     // console.log('Selected File:', this.selectedFile);
+      // Save updated data back to local storage
+      localStorage.setItem('exhibitionData', JSON.stringify(existingData));
+
+      alert('Form data saved to local storage!');
+      console.log('Saved Data:', dataToStore);
+    } else {
+      alert('Form is invalid. Please fill out all required fields.');
     }
   }
-
 }
